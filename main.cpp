@@ -8,9 +8,10 @@
 #include <eigen-3.4.0/Eigen/Dense>
 #include <eigen-3.4.0/Eigen/Jacobi>
 
-#include "compute.h"
-#include "five_points.h"
-#include "matrix.h"
+#include "compute.hpp"
+#include "five_points.hpp"
+#include "matrix.hpp"
+#include "compile_loop.hpp"
 
 
 void solve()
@@ -35,16 +36,10 @@ void solve()
 
 int main()
 {
-    type::matrix_t<double> container(3,3);
-    container = {-1.0, 1.0, 2.0,
-                 3.0, -1.0, 1.0,
-                 -1.0, 3.0, 4.0};
+    type::matrix_t<double> mat(2,2);
+    mat = {1,2,3,4};
 
-    std::cout << container << std::endl;
-
-    auto inv = inverse(container);
-    auto mat = transpose<type::matrix_t<double>>(inv);
-
+    std::cout << mat << std::endl;
     // solve();
 
     // std::tuple fs{
@@ -75,8 +70,21 @@ int main()
     //         [](int x, int y){return x / y;}
     // );
 
-    // for(auto a : result)
+    // type::matrix_t<double> mat(3,3);
+    // mat = {-2.0, -5.0, 2.0,
+    //         1.0, 3.0, 0.0,
+    //         0.0, 1.0, 3.0};
+    // std::tuple args{-3.0, 4.0, 6.0};
+    // gauss_jordar_elimination(args, mat);
+
+    // mat.resize(3, type::matrix<double>(4,0));
+
+    // type::compile_loop<3>([&args, &mat](auto i)
     // {
-    //     std::cout << a << ", ";
-    // }
+    //     // mat(i.value,3) = std::get<i.value>(args);
+    // });
+    // auto m = std::shared_ptr<int>(3);
+
+    // std::cout << *m << std::endl;
+
 }

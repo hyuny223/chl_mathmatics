@@ -7,9 +7,9 @@
 #include <cassert>
 #include <utility>
 
-#include "five_points.h"
-#include "compile_loop.h"
-#include "matrix.h"
+#include "five_points.hpp"
+#include "compile_loop.hpp"
+#include "matrix.hpp"
 
 template < template<typename ...> class ContainerType, typename TupleType, typename... FuncTypes>
 auto evaluate_functions(TupleType&& arguments, FuncTypes&&... func)
@@ -180,11 +180,36 @@ void lower_triangular_matrix(ContainerType& container)
     }
 };
 
-// template<typename... FuncTypes, typename... ArgTypes>
-// auto gauss_jordar_elimination(constd std::tuple<FuncTypes...>& functions, const std::tuple<ArgTypes...>& args)
+// template<typename... FuncTypes, typename... ArgTypes, std::size_t arg_size = sizeof...(ArgTypes)>
+// auto gauss_jordar_elimination(const std::tuple<FuncTypes...>& functions, const std::tuple<ArgTypes...>& args, type::matrix_t<double>& mat)
 // {
-//     auto y = std::apply(functions, args);
+//     type::compile_loop<arg_size>([&args, &mat](auto& i)
+//     {
+//         mat[i.value].resize(4); // resize 3 -> 4 
+//         mat[i.value].emplace_back(std::get<i.value>(args));
+//     });
+//     upper_triangular_matrix(mat);
+//     lower_triangular_matrix(mat);
+
+//     std::cout << mat << std::endl;
+//     // auto y = std::apply(functions, args);
 // }
+
+template<typename... ArgTypes, std::size_t arg_size = sizeof...(ArgTypes)>
+auto gauss_jordar_elimination(const std::tuple<ArgTypes...>& args, type::matrix_t<double>& mat)
+{
+
+    type::compile_loop<arg_size>([&args, &mat](auto i)
+    {
+        mat[i.value].resize(mat.cols + arg_size); // resize 3 -> 4 
+        mat(i.value, mat.cols) = std::get<i.value>(args);
+    });
+    upper_triangular_matrix(mat);
+    lower_triangular_matrix(mat);
+
+    std::cout << mat << std::endl;
+    // auto y = std::apply(functions, args);
+}
 
 template <typename ContainerType>
 auto inverse(ContainerType& container)
