@@ -55,7 +55,7 @@ namespace type
             {										//vector.end()
                 return container + m_size;
             }
-            void push_back(const T& elem) 
+            void push_back(const T& elem)
             {
                 if (m_capacity <= m_size) 
                 {
@@ -106,14 +106,14 @@ namespace type
                 container = tmp_container;
                 m_capacity = size;
             }
-            void swap(matrix& other) 
+            void swap(matrix& other)
             {
                 swap(container, other.vec);
                 swap(m_size, other.m_size);
                 swap(m_capacity, other.m_capacity);
             }
-            
-            friend std::ostream& operator<< (std::ostream &out, matrix<T>& con)
+
+            friend std::ostream& operator<< (std::ostream &out, matrix<T> con)
             {
                 out << "[";
                 for(int i = 0; i < con.size(); ++i)
@@ -129,7 +129,7 @@ namespace type
 
                 return out;
             }
-            std::ostream& endl(std::ostream& end) // 개행
+            std::ostream& endl(std::ostream& end)
             {
                 end << '\n';
                 return end;
@@ -151,9 +151,10 @@ namespace type
                 }
                 return *this;
             }
-            T& operator[](const int& idx)
+            T& operator[](const int& index)
             {
-                return container[idx];
+                // index = index >= 0 ? index : this->m_size + index;
+                return container[index];
             }
             bool operator!=(matrix& other)
             {
@@ -281,7 +282,8 @@ namespace type
             //     swap(m_size, other.m_size);
             //     swap(m_capacity, other.m_capacity);
             // }
-            friend std::ostream& operator<< (std::ostream &out, matrix_t<T>& con)
+
+            friend std::ostream& operator<< (std::ostream &out, matrix_t<T> con)
             {
                 out << "[";
                 for(int row = 0; row < con.rows; ++row)
@@ -313,7 +315,7 @@ namespace type
 
                 return out;
             }
-            std::ostream& endl(std::ostream& end) // 개행
+            std::ostream& endl(std::ostream& end)
             {
                 end << '\n';
                 return end;
@@ -336,8 +338,9 @@ namespace type
                 }
                 return *this;
             }
-            auto operator[](const auto& index) 
+            auto operator[](const int& index)
             {
+                // index = index >= 0 ? index : this->rows + index;
                 if (0 <= index &&  index < rows)
                     return *(container + index);
                 throw std::out_of_range("Out of bounds element access");
@@ -382,7 +385,7 @@ namespace type
                 }
                 return container;
             }
-            auto& operator() (const int& row, const int& col)
+            auto& operator() (int row, int col)
             {
                 return container[row][col];
             }
@@ -434,6 +437,78 @@ namespace type
                 }
                 return res;
             }
+
+            auto slice(int rs, int re, int cs, int ce)
+            {
+                rs = rs >= 0 ? rs : this->rows + rs;
+                re = re >= 0 ? re : this->rows + re;
+                cs = cs >= 0 ? cs : this->cols + cs;
+                ce = ce >= 0 ? ce : this->cols + ce;
+
+                type::matrix_t<T> slice_container(re - rs, ce - cs);
+
+                for(int r = 0; r < slice_container.rows; ++r)
+                {
+                    for(int c = 0; c < slice_container.cols; ++c)
+                    {
+                        slice_container[r][c] = container[rs + r][cs + c];
+                    }
+                }
+                return slice_container;
+            }
+            auto t()
+            {
+                assert( this->rows != 0 );
+
+                matrix_t<T> trans_container(this->cols, this->rows);
+
+                for (int row = 0; row < this->rows; ++row)
+                {
+                    for (int col = 0; col < this->cols; ++col)
+                    {
+                        trans_container(col, row) = container[row][col];
+                    }
+                }
+                return trans_container;
+            }
+            auto inv()
+            {
+                auto row_count = this->rows;
+                assert( row_count == this->cols );
+
+                auto col_count = row_count * 2;
+
+                matrix_t<T> tmp(row_count, col_count);
+
+                for(std::size_t i = 0; i < row_count; ++i)
+                {
+                    for(std::size_t j = 0; j < row_count; ++j)
+                    {
+                        tmp[i][j] = container[i][j];
+                    }
+                }
+
+                for(std::size_t i = 0; i < row_count; ++i)
+                {
+                    tmp[i][row_count + i] = 1;
+                }
+
+                upper_triangular_matrix<matrix_t<T>>(tmp);
+                lower_triangular_matrix<matrix_t<T>>(tmp);
+
+                matrix_t<T> inv(row_count, row_count);
+
+                for(std::size_t i = 0; i < row_count; ++i)
+                {
+                    for(std::size_t j = 0; j < row_count; ++j)
+                    {
+                        inv[i][j] = tmp[i][row_count + j];
+                    }
+                }
+
+                return inv;
+            }
+
             int rows, cols;
     };
 }

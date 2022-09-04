@@ -17,7 +17,6 @@ auto evaluate_functions(TupleType&& arguments, FuncTypes&&... func)
     return ContainerType{std::apply(std::forward<FuncTypes>(func), std::forward<TupleType>(arguments))...};
 }
 
-
 template <auto N, typename FuncType, typename... ArgTypes>
     requires std::is_invocable_v<FuncType, ArgTypes...>
 auto fix_arguments_other_than_nth(FuncType&& func, const std::tuple<ArgTypes...>& args)
@@ -51,10 +50,8 @@ auto partial_derivative(FuncType&& function, const std::tuple<ArgTypes...>& args
 // {
 //     // constexpr auto ep = 3.0 * std::numeric_limits<ValueType>::epsilon();
 //     auto ep = 0.01;
-
 //     ValueType fx; // function f(x)
 //     ValueType fp; // first order derivative of f(x)
-
 //     while(fabs(fx = f(x)) > ep)
 //     {
 //         fp = diff_stencil_lower(x,f);
@@ -90,24 +87,6 @@ ContainerType create_jacobian_matrix(const std::tuple<FuncTypes...>& function, c
     return jacobian;
 }
 
-template <typename ContainerType>
-auto transpose(ContainerType& container)
-{
-    assert( container.rows != 0 );
-
-    ContainerType trans_container(container.cols, container.rows);
-
-    for (int row = 0; row < container.rows; ++row)
-    {
-        for (int col = 0; col < container.cols; ++col)
-        {
-            trans_container(col, row) = container(row, col);
-        }
-    }
-    return trans_container;
-}
-
-
 template<typename ContainerType>
 void upper_triangular_matrix(ContainerType& container)
 {
@@ -116,6 +95,11 @@ void upper_triangular_matrix(ContainerType& container)
     {
         auto maxi = -1;
 
+        if(row == container.rows -1)
+        {
+            return;
+        }
+
         for(std::size_t i = row; i < container.rows; ++i)
         {
             if(container(i, row) > maxi)
@@ -123,16 +107,15 @@ void upper_triangular_matrix(ContainerType& container)
                 maxi = i;
             }
         }
-
-        std::vector<double> tmp = container[row];
+        type::matrix<double> tmp = container[row];
         container[row] = container[maxi];
         container[maxi] = tmp;
+        return;
     };
 
     for(int row = 0; row < container.rows; ++row)
     {
         pivot(row);
-        // std::cout << container << std::endl;
         auto d = container(row, row);
         for(int mid = row; mid < container.rows; ++mid)
         {
@@ -180,77 +163,19 @@ void lower_triangular_matrix(ContainerType& container)
     }
 };
 
-// template<typename... FuncTypes, typename... ArgTypes, std::size_t arg_size = sizeof...(ArgTypes)>
-// auto gauss_jordar_elimination(const std::tuple<FuncTypes...>& functions, const std::tuple<ArgTypes...>& args, type::matrix_t<double>& mat)
-// {
-//     type::compile_loop<arg_size>([&args, &mat](auto& i)
-//     {
-//         mat[i.value].resize(4); // resize 3 -> 4 
-//         mat[i.value].emplace_back(std::get<i.value>(args));
-//     });
-//     upper_triangular_matrix(mat);
-//     lower_triangular_matrix(mat);
-
-//     std::cout << mat << std::endl;
-//     // auto y = std::apply(functions, args);
-// }
-
 template<typename... ArgTypes, std::size_t arg_size = sizeof...(ArgTypes)>
 auto gauss_jordar_elimination(const std::tuple<ArgTypes...>& args, type::matrix_t<double>& mat)
 {
-
+    mat.resize(arg_size, type::matrix<double>(mat.cols + 1, 0));
     type::compile_loop<arg_size>([&args, &mat](auto i)
     {
-        mat[i.value].resize(mat.cols + arg_size); // resize 3 -> 4 
-        mat(i.value, mat.cols) = std::get<i.value>(args);
+        mat(i.value, mat.cols - 1) = std::get<i.value>(args);
     });
     upper_triangular_matrix(mat);
     lower_triangular_matrix(mat);
 
-    std::cout << mat << std::endl;
-    // auto y = std::apply(functions, args);
+    return mat.slice(0,mat.rows,-1,mat.cols);
 }
-
-template <typename ContainerType>
-auto inverse(ContainerType& container)
-{
-
-    auto row_count = container.rows;
-    assert( row_count == container.cols );
-
-    auto col_count = row_count * 2;
-
-    ContainerType tmp(row_count, col_count);
-
-    for(std::size_t i = 0; i < row_count; ++i)
-    {
-        for(std::size_t j = 0; j < row_count; ++j)
-        {
-            tmp(i,j) = container(i,j);
-        }
-    }
-
-    for(std::size_t i = 0; i < row_count; ++i)
-    {
-        tmp(i, row_count + i) = 1;
-    }
-
-    upper_triangular_matrix<ContainerType>(tmp);
-    lower_triangular_matrix<ContainerType>(tmp);
-
-    ContainerType inv(row_count, row_count);
-
-    for(std::size_t i = 0; i < row_count; ++i)
-    {
-        for(std::size_t j = 0; j < row_count; ++j)
-        {
-            inv(i, j) = tmp(i, row_count + j);
-        }
-    }
-
-    return inv;
-}
-
 
 template<typename... FuncTypes, typename... ArgTypes>
 auto newton_method_with_jacobian(const std::tuple<FuncTypes...>& functions, const std::tuple<ArgTypes...>& args)
@@ -258,8 +183,8 @@ auto newton_method_with_jacobian(const std::tuple<FuncTypes...>& functions, cons
     // constexpr auto ep = 3.0 * std::numeric_limits<ValueType>::epsilon();
     auto ep = 0.01;
 
-    // auto jacobian = create_jacobian_matrix<type::matrix_t<double>>(functions, args);
-    // auto trans_jacobian = transpose<double>(jacobian);
+    auto jacobian = create_jacobian_matrix<type::matrix_t<double>>(functions, args);
+    auto trans_jacobian = jacobian.t();
 
     // std::tuple ans;
 
