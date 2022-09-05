@@ -145,23 +145,23 @@ namespace type
             end << '\n';
             return end;
         }
-        auto &operator=(matrix<T> other)
-        {
-            if (this != &other)
-            {
-                if (m_capacity < other.m_capacity)
-                {
-                    delete[] container;
-                    container = new T[other.m_capacity];
-                }
-            }
-            auto size = other.m_size;
-            for (int i = 0; i < size; ++i)
-            {
-                container[i] = other[i];
-            }
-            return *this;
-        }
+        // auto &operator=(matrix<T> other)
+        // {
+        //     if (this != &other)
+        //     {
+        //         if (m_capacity < other.m_capacity)
+        //         {
+        //             delete[] container;
+        //             container = new T[other.m_capacity];
+        //         }
+        //     }
+        //     auto size = other.m_size;
+        //     for (int i = 0; i < size; ++i)
+        //     {
+        //         container[i] = other[i];
+        //     }
+        //     return *this;
+        // }
         T &operator[](const int &index)
         {
             // index = index >= 0 ? index : this->m_size + index;
@@ -330,24 +330,33 @@ namespace type
             return end;
         }
 
-        auto operator=(matrix_t<T> &other)
-        {
-            if (this != &other)
-            {
-                if (m_capacity < other.m_capacity)
-                {
-                    delete[] container;
-                    container = new matrix<T>[other.m_capacity];
-                }
-            }
-            rows = other.rows;
-            for (int i = 0; i < rows; ++i)
-            {
-                container[i] = other[i];
-            }
-            return *this;
-        }
-        auto operator[](const int &index)
+        // matrix_t<T>& operator=(const matrix_t<T>& other)
+        // {
+        //     if (this != &other)
+        //     {
+        //         if (m_capacity < other.m_capacity)
+        //         {
+        //             delete[] container;
+        //             container = new matrix<T>[other.m_capacity];
+        //         }
+        //     }
+        //     rows = other.rows;
+        //     for (int i = 0; i < rows; ++i)
+        //     {
+        //         container[i] = other[i];
+        //     }
+        //     return *this;
+        // }
+
+        // auto& operator=(matrix_t<T>&& other)
+        // {
+        //     std::swap(container, other);
+        //     std::swap(rows, other.rows);
+        //     std::swap(m_capacity, other.m_capacity);
+        //     other.m_size = 0;
+        //     return *this;
+        // }
+        auto& operator[](const int &index)
         {
             // index = index >= 0 ? index : this->rows + index;
             if (0 <= index && index < rows)
@@ -399,7 +408,7 @@ namespace type
             return container[row][col];
         }
 
-        friend auto operator*(matrix_t<T> &a, matrix_t<T> &b)
+        friend auto operator*(matrix_t<T> a, matrix_t<T> b)
         {
             assert(a.cols == b.rows);
 
@@ -418,7 +427,7 @@ namespace type
             }
             return res;
         }
-        friend auto operator+(matrix_t<T> &a, matrix_t<T> &b)
+        friend auto operator+(matrix_t<T> a, matrix_t<T> b)
         {
             assert(a.rows == b.rows && a.cols == b.cols);
             matrix_t<T> res(a.rows, a.cols);
@@ -432,7 +441,7 @@ namespace type
             }
             return res;
         }
-        friend auto operator-(matrix_t<T> &a, matrix_t<T> &b)
+        friend auto operator-(matrix_t<T> a, matrix_t<T> b)
         {
             assert(a.rows == b.rows && a.cols == b.cols);
             matrix_t<T> res(a.rows, a.cols);
@@ -446,7 +455,32 @@ namespace type
             }
             return res;
         }
+        friend auto operator*(matrix_t<T> a, auto scalar)
+        {
+            matrix_t<T> res(a.rows, a.cols);
 
+            for (int r = 0; r < a.rows; ++r)
+            {
+                for (int c = 0; c < a.cols; ++c)
+                {
+                    res(r, c) = a(r, c) * scalar;
+                }
+            }
+            return res;
+        }
+        friend auto operator*(auto scalar, matrix_t<T> a)
+        {
+            matrix_t<T> res(a.rows, a.cols);
+
+            for (int r = 0; r < a.rows; ++r)
+            {
+                for (int c = 0; c < a.cols; ++c)
+                {
+                    res(r, c) = a(r, c) * scalar;
+                }
+            }
+            return res;
+        }
         auto slice(int rs, int re, int cs, int ce)
         {
             rs = rs >= 0 ? rs : this->rows + rs;
@@ -501,7 +535,6 @@ namespace type
             {
                 tmp[i][row_count + i] = 1;
             }
-
             upper_triangular_matrix<matrix_t<T>>(tmp);
             lower_triangular_matrix<matrix_t<T>>(tmp);
 
@@ -522,7 +555,6 @@ namespace type
             std::cout << "( " << this->rows << ", " << this->cols << " )" << std::endl; 
             return std::tuple{this->rows, this->cols};
         }
-
 
         int rows, cols;
     };

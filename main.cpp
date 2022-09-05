@@ -29,58 +29,39 @@ void solve()
         }
     };
 
-    std::tuple val{2.0, 3.0};
+    std::tuple val{4.0, 3.0};
 
-    auto jacobian = create_jacobian_matrix<type::matrix_t<double>>(fs, val);
+    auto jacobian = create_jacobian_matrix(fs, val);
 
     std::cout << jacobian << std::endl;
 }
 
+
 int main()
 {
-    std::tuple functions{
-        [](auto x1, auto x2, auto x3)
+    std::tuple t{-200.0, -20.0};
+
+    // cv::Mat board(cv::Size(400,200), CV_8UC3, cv::Scalar::all(255));
+
+    // cv::Point2d original_xy{50, 50};
+    // cv::Point2d target_xy{300,100};
+
+    // cv::circle(board, original_xy, 10, cv::Scalar(0,255,0),3);
+    // cv::circle(board, target_xy, 10, cv::Scalar(0,0,255),3);
+
+    // cv::imshow("board", board);
+    // cv::waitKey(0);
+
+    std::tuple function{
+        [](double tx, double ty)
         {
-            return 3.0 * x1 - std::cos(x2 * x3) - 0.5;
-        },
-        [](auto x1, auto x2, auto x3)
-        {
-            return x1 * x1 - 81.0 * (x2 + 0.1) * (x2 + 0.1) + std::sin(x3) - 1.06;
-        },
-        [](auto x1, auto x2, auto x3)
-        {
-            return std::exp(-x1 * x2) + 20.0 * x3 + (10.0 * std::numbers::pi - 3.0) / 3.0;
+            return std::sqrt((50 - (300+tx))*(50 - (300+tx)) + (50 - (100+ty))*(50 - (100+ty)));
         }
     };
 
-    std::tuple x{0.1, 0.1, -0.1};
+    auto y = newton_method(function, t);
 
-    auto solution = solve_nonlinear_equations_newton_method(functions, x);
-    // auto [a,b,c] = solution;
 
-    // std::tuple functions{
-    //     [](auto x1, auto x2)
-    //     {
-    //         return x1 + x2;
-    //     },
-    //     [](auto x1, auto x2)
-    //     {
-    //         return x1 - x2;
-    //     },        [](auto x1, auto x2)
-    //     {
-    //         return x1 * x2;
-    //     }
-    // };
-
-    // std::tuple args{2, 3};
-
-    // auto ans = evaluate_lambdas<std::vector>(functions, args);
-
-    // for(auto a : ans)
-    // {
-    //     std::cout << a << ", ";
-    // }
-    // std::cout << std::endl;
-
+    // cv::circle(board, cv::Point2d(static_cast<int>(std::get<0>(y)),static_cast<int>(std::get<1>(y))), 10, cv::Scalar(255,0,0),3);
 
 }

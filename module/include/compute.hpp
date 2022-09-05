@@ -69,6 +69,41 @@ auto partial_derivative(FuncType&& function, const std::tuple<ArgTypes...>& args
 //     return x;
 // }
 
+
+template <typename... FuncType, typename... ArgTypes, std::size_t size = sizeof...(ArgTypes), std::size_t f_size = sizeof...(FuncType)>
+auto newton_method(
+    const std::tuple<FuncType...>& functions,
+    std::tuple<ArgTypes...>& initial_values, int max_try = 20)
+{
+    // constexpr auto ep = 3.0 * std::numeric_limits<ValueType>::epsilon();
+    auto ep = 0.01;
+
+    type::matrix_t<double> mat(1,2);
+    type::compile_loop<size>([&mat, &initial_values](auto i)
+    {
+        mat(0,i.value) = std::get<i.value>(initial_values);
+    });
+
+    double fx;
+    type::compile_loop<f_size>([&functions, &mat, &initial_values, &ep, &fx](auto i)
+    {
+        auto f = std::get<i.value>(functions);
+        while(fabs(fx = f(mat(0,0), mat(0,1))) > ep)
+        {
+            std::cout << "fx : " << fx << std::endl;
+            auto J = create_jacobian_matrix(functions, initial_values);
+            std::cout << "J : \n" << (((J.t()*J).inv())*J.t()*fx).t() << std::endl;
+
+            mat = mat - (((J.t()*J).inv())*J.t()*fx).t();
+
+            std::get<0>(initial_values) = mat(0,0);
+            std::get<1>(initial_values) = mat(0,1);
+            std::cout << "===========" << std::endl;
+        }
+    });
+
+    return mat;
+}
 /*
 자코비안
 1) std::tuple로 람다 함수를 받아들인다
@@ -77,12 +112,10 @@ auto partial_derivative(FuncType&& function, const std::tuple<ArgTypes...>& args
 일단은 vector로 진행 
 */
 
-template <typename ContainerType, typename... FuncTypes, typename... ArgTypes, std::size_t f_size = sizeof...(FuncTypes), std::size_t arg_size = sizeof...(ArgTypes)>
-ContainerType create_jacobian_matrix(const std::tuple<FuncTypes...>& function, const std::tuple<ArgTypes...>& args)
+template <typename... FuncTypes, typename... ArgTypes, std::size_t f_size = sizeof...(FuncTypes), std::size_t arg_size = sizeof...(ArgTypes)>
+auto create_jacobian_matrix(const std::tuple<FuncTypes...>& function, const std::tuple<ArgTypes...>& args)
 {
-    ContainerType jacobian(f_size, arg_size);
-    // jacobian.reserve(arg_size * arg_size);
-
+    type::matrix_t<double> jacobian(f_size, arg_size);
     type::compile_loop<f_size>([&function, &args, &jacobian](auto i)
     {
         auto& f = std::get<i.value>(function);
@@ -101,7 +134,7 @@ void upper_triangular_matrix(ContainerType& container)
 {
     auto pivot = [&](const std::size_t row)
     {
-        auto maxi = -std::numeric_limits<double>::infinity();
+        auto maxi = -std::numeric_limits<long double>::infinity();
         int index = 0;
         if(row == container.rows -1)
         {
@@ -188,36 +221,35 @@ auto gauss_jordar_elimination(const std::tuple<ArgTypes...>& args, type::matrix_
     return ans;
 }
 
-template <typename... FuncType, typename... ArgTypes, std::size_t size = sizeof...(ArgTypes)>
-auto solve_nonlinear_equations_newton_method(
-    const std::tuple<FuncType...>& functions,
-    std::tuple<ArgTypes...> initial_values, int max_try = 20)
-{
-    int try_count = 0;
+// template <typename... FuncType, typename... ArgTypes, std::size_t size = sizeof...(ArgTypes)>
+// auto solve_nonlinear_equations_newton_method(
+//     const std::tuple<FuncType...>& functions,
+//     std::tuple<ArgTypes...> initial_values, int max_try = 20)
+// {
+//     int try_count = 0;
 
-    while(try_count < max_try)
-    {
+//     while(try_count < max_try)
+//     {
+//         auto jacobian = create_jacobian_matrix(functions, initial_values);
+//         auto y = gauss_jordar_elimination(initial_values, jacobian);
 
-        auto jacobian = create_jacobian_matrix<type::matrix_t<double>>(functions, initial_values);
-        auto y = gauss_jordar_elimination(initial_values, jacobian);
+//         type::compile_loop<size>([&initial_values, &y](auto i)
+//         {
+//             std::get<i.value>(initial_values) += std::get<i.value>(y);
+//         });
 
-        type::compile_loop<size>([&initial_values, &y](auto i)
-        {
-            std::get<i.value>(initial_values) += std::get<i.value>(y);
-        });
+//         // auto Fx = evaluate_lambdas<std::vector>(functions, initial_values);
+//         // for(auto f:Fx)
+//         // {
+//         //     std::cout << f << ", ";
+//         // }
+//         // std::cout << "\n======================\n";
 
-        auto Fx = evaluate_lambdas<std::vector>(functions, initial_values);
-        for(auto f:Fx)
-        {
-            std::cout << f << ", ";
-        }
-        std::cout << "\n======================\n";
+//         ++try_count;
+//     }
 
-        ++try_count;
-    }
-
-    return initial_values;
-}
+//     return initial_values;
+// }
 
 
 
