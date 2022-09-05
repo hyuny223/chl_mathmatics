@@ -1,6 +1,0 @@
-/home/chl/codeTest/personal/gauss_newton/build/CMakeFiles/rebuild_cache.dir
-/home/chl/codeTest/personal/gauss_newton/build/CMakeFiles/edit_cache.dir
-/home/chl/codeTest/personal/gauss_newton/build/CMakeFiles/gauss.dir
-/home/chl/codeTest/personal/gauss_newton/build/module/CMakeFiles/rebuild_cache.dir
-/home/chl/codeTest/personal/gauss_newton/build/module/CMakeFiles/edit_cache.dir
-/home/chl/codeTest/personal/gauss_newton/build/module/CMakeFiles/module.dir

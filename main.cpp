@@ -41,26 +41,32 @@ int main()
 {
     std::tuple t{-200.0, -20.0};
 
-    // cv::Mat board(cv::Size(400,200), CV_8UC3, cv::Scalar::all(255));
+    cv::Mat board(cv::Size(400,200), CV_8UC3, cv::Scalar::all(255));
 
-    // cv::Point2d original_xy{50, 50};
-    // cv::Point2d target_xy{300,100};
+    cv::Point2d original_xy{50, 50};
+    cv::Point2d target_xy{300,100};
 
-    // cv::circle(board, original_xy, 10, cv::Scalar(0,255,0),3);
-    // cv::circle(board, target_xy, 10, cv::Scalar(0,0,255),3);
-    // cv::circle(board, cv::Point2d(static_cast<int>(300 - 316.619),static_cast<int>(100 - 96.619)), 10, cv::Scalar(255,0,0),3);
+    cv::circle(board, original_xy, 10, cv::Scalar(0,255,0),3);
+    cv::circle(board, target_xy, 10, cv::Scalar(0,0,255),3);
+    cv::circle(board, cv::Point2d(static_cast<int>(300 - 253.125),static_cast<int>(100 - 73.125)), 10, cv::Scalar(255,0,0),3);
 
-    // cv::imshow("board", board);
-    // cv::waitKey(0);
-
-    std::tuple function{
-        [](long double tx, long double ty)
+    cv::imshow("board", board);
+    while(1)
+    {
+        if(cv::waitKey(0) == 27)
         {
-            return (50 - (300+tx))*(50 - (300+tx)) + (50 - (100+ty))*(50 - (100+ty));
+            break;
         }
-    };
+    }
 
-    auto y = gauss_newton_method(function, t);
+    // std::tuple function{
+    //     [](long double tx, long double ty)
+    //     {
+    //         return (50 - (300+tx))*(50 - (300+tx)) + (50 - (100+ty))*(50 - (100+ty));
+    //     }
+    // };
+
+    // auto y = gauss_newton_method(function, t);
 
 
 

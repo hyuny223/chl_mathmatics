@@ -149,9 +149,7 @@ void upper_triangular_matrix(ContainerType& container)
 
     for(int row = 0; row < container.rows; ++row)
     {
-        std::cout << "container 1 : \n" << container << std::endl;
         pivot(row);
-        std::cout << "container 2 : \n" << container << std::endl;
         long double d = container(row, row);
         for(int mid = row; mid < container.rows; ++mid)
         {
@@ -168,9 +166,9 @@ void upper_triangular_matrix(ContainerType& container)
                     long double k = m / container(row, row);
                     container(mid,col) = container(mid,col) -k * container(row,col);
                 }
-                std::cout << "----------------------" << std::endl;
-                std::cout << container << std::endl;
-                std::cout << "----------------------" << std::endl;
+                // std::cout << "----------------------" << std::endl;
+                // std::cout << container << std::endl;
+                // std::cout << "----------------------" << std::endl;
                 
             }
         }
