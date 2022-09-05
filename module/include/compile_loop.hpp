@@ -7,6 +7,8 @@
 // #include <execution>
 #include <iostream>
 
+#include "matrix.hpp"
+
 namespace type
 {
     template <typename Type>
@@ -52,6 +54,21 @@ namespace type
     void compile_loop(auto&& work)
     {
         hidden::compile_loop(work, std::make_integer_sequence<int, END>{});
+    }
+
+    namespace hidden
+    {
+        template <int... Indices>
+        auto matrixToTuple(type::matrix_t<double>& mat, std::integer_sequence<int, Indices ...>) {
+        return std::make_tuple(mat(Indices, mat.cols-1)...);
+        }
+    }
+
+    template <int N>
+    auto matrixToTuple(type::matrix_t<double>& mat)
+    {
+        assert(mat.size() >= N);
+        return hidden::matrixToTuple(mat, std::make_integer_sequence<int, N>{});
     }
 
     // template<typename... ArgTypes>

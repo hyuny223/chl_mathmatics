@@ -6,16 +6,25 @@
 #include <cmath>
 #include <cassert>
 #include <utility>
+#include <limits>
+#include <functional>
 
 #include "five_points.hpp"
 #include "compile_loop.hpp"
 #include "matrix.hpp"
 
-template < template<typename ...> class ContainerType, typename TupleType, typename... FuncTypes>
-auto evaluate_functions(TupleType&& arguments, FuncTypes&&... func)
-{
-    return ContainerType{std::apply(std::forward<FuncTypes>(func), std::forward<TupleType>(arguments))...};
-}
+// template < template<typename...> class ContainerType, typename TupleType, typename... FuncTypes>
+// template <typename TupleType, typename... FuncTypes, std::size_t size=sizeof...(FuncTypes)>
+// auto evaluate_functions(TupleType&& args, const std::tuple<FuncTypes...>& functions)
+// {
+//     std::vector<double> container;
+//     type::compile_loop<size>([&functions, &args, &container](auto i)
+//     {
+//         auto& f = std::get<i.value>(functions);
+//         container.push_back(std::apply( std::forward<double>(f), std::forward<TupleType>(args) ));
+//     });
+//     return container;
+// }
 
 template <auto N, typename FuncType, typename... ArgTypes>
     requires std::is_invocable_v<FuncType, ArgTypes...>
@@ -90,26 +99,25 @@ ContainerType create_jacobian_matrix(const std::tuple<FuncTypes...>& function, c
 template<typename ContainerType>
 void upper_triangular_matrix(ContainerType& container)
 {
-
     auto pivot = [&](const std::size_t row)
     {
-        auto maxi = -1;
-
+        auto maxi = -std::numeric_limits<double>::infinity();
+        int index = 0;
         if(row == container.rows -1)
         {
             return;
         }
-
         for(std::size_t i = row; i < container.rows; ++i)
         {
             if(container(i, row) > maxi)
             {
-                maxi = i;
+                maxi = container(i, row);
+                index = i;
             }
         }
         type::matrix<double> tmp = container[row];
-        container[row] = container[maxi];
-        container[maxi] = tmp;
+        container[row] = container[index];
+        container[index] = tmp;
         return;
     };
 
@@ -171,60 +179,133 @@ auto gauss_jordar_elimination(const std::tuple<ArgTypes...>& args, type::matrix_
     {
         mat(i.value, mat.cols - 1) = std::get<i.value>(args);
     });
+
     upper_triangular_matrix(mat);
     lower_triangular_matrix(mat);
 
-    return mat.slice(0,mat.rows,-1,mat.cols);
+    auto ans = type::matrixToTuple<arg_size>(mat);
+
+    return ans;
 }
 
-template<typename... FuncTypes, typename... ArgTypes>
-auto newton_method_with_jacobian(const std::tuple<FuncTypes...>& functions, const std::tuple<ArgTypes...>& args)
+template <typename... FuncType, typename... ArgTypes, std::size_t size = sizeof...(ArgTypes)>
+auto solve_nonlinear_equations_newton_method(
+    const std::tuple<FuncType...>& functions,
+    std::tuple<ArgTypes...> initial_values, int max_try = 20)
 {
-    // constexpr auto ep = 3.0 * std::numeric_limits<ValueType>::epsilon();
-    auto ep = 0.01;
+    int try_count = 0;
 
-    auto jacobian = create_jacobian_matrix<type::matrix_t<double>>(functions, args);
-    auto trans_jacobian = jacobian.t();
+    while(try_count < max_try)
+    {
 
-    // std::tuple ans;
+        auto jacobian = create_jacobian_matrix<type::matrix_t<double>>(functions, initial_values);
+        auto y = gauss_jordar_elimination(initial_values, jacobian);
 
-    // auto workhorse1 = [&functions, &args, &jacobian](auto i)
-    // {
-    //     constexpr auto row = type_extention::extract_value(i);
-    //     auto& f = std::get<row>(functions);
-    //     auto val = f(args);
+        type::compile_loop<size>([&initial_values, &y](auto i)
+        {
+            std::get<i.value>(initial_values) += std::get<i.value>(y);
+        });
 
-    //     auto workhorse1 = [&](auto j)
-    //     {
-    //         constexpr auto col  = type_extention::extract_value(j);
-    //         auto x = std::get<col>(args);
+        auto Fx = evaluate_lambdas<std::vector>(functions, initial_values);
+        for(auto f:Fx)
+        {
+            std::cout << f << ", ";
+        }
+        std::cout << "\n======================\n";
 
+        ++try_count;
+    }
 
-    //     };
-    //     return 0;
-    // };
-
-
-
-    // ValueType fx; // function f(x)
-    // ValueType fp; // first order derivative of f(x)
-
-    // while(fabs(fx = f(x)) > ep)
-    // {
-    //     fp = diff_stencil_lower(x,f);
-    //     x = x - fx/ fp;
-    // }
-    // return x;
+    return initial_values;
 }
 
 
-// template <typename... FuncType, typename... ArgTypes, std::size_t Size = sizeof...(ArgTypes)>
-// auto solve_nonlinear_equations_newton_method(const std::tuple<FuncType...>& functions, std::tuple<ArgTypes...> initial_values, int max_try = 20)
+
+namespace hidden
+{
+    // template< template<typename, size_t> class ReturnClass,
+    //         typename TupleType, auto... Indices, typename... ArgTypes>
+    // auto evaluate_lambdas(typed_sequence_t<Indices...>, TupleType&& tuple, ArgTypes&&... args)
+    // {
+    //     return ReturnClass{ (std::get<Indices>(tuple)(std::forward<ArgTypes>(args)...))... };
+    // }
+
+    // template< template<typename...> class ReturnClass,
+    //         typename TupleType, auto... Indices, typename... ArgTypes>
+    // auto evaluate_lambdas(typed_sequence_t<Indices...>, TupleType&& tuple, ArgTypes&&... args)
+    // {
+    //     return ReturnClass{ (std::get<Indices>(tuple)(std::forward<ArgTypes>(args)...))... };
+    // }
+
+    template< template<typename, size_t> class ReturnClass,
+            typename TupleType, typename ArgTuple, auto... Indices>
+    auto evaluate_lambdas_tuple(type::sequence_t<Indices...>, TupleType&& tuple, ArgTuple&& arguments)
+    {
+        return ReturnClass{ std::apply(std::get<Indices>(tuple), std::forward<ArgTuple>(arguments))... };
+    }
+
+    template< template<typename...> class ReturnClass,
+            typename TupleType, typename ArgTuple, auto... Indices>
+    auto evaluate_lambdas_tuple(type::sequence_t<Indices...>, TupleType&& tuple, ArgTuple&& arguments)
+    {
+        return ReturnClass{ std::apply(std::get<Indices>(tuple), std::forward<ArgTuple>(arguments))... };
+    }
+
+}
+// end of namespace hidden
+
+// template< template<typename, size_t> class ReturnClass,
+//     typename FuncType, typename... FuncTypes, typename ArgFirst,  typename... ArgTypes>
+// auto evaluate_lambdas(const std::tuple<FuncType, FuncTypes...>& tuple, ArgFirst&& arg, ArgTypes&&... args)
 // {
-//     int try_count = 0;
+//     constexpr auto Size = sizeof...(FuncTypes) + 1;
 
-//     while(try_count < max_try)
-//     {
-
-//     }
+//     return hidden::evaluate_lambdas<ReturnClass>(make_typed_sequence_t<Size>{},
+//         tuple, std::forward<ArgFirst>(arg), std::forward<ArgTypes>(args)...);
 // }
+
+// template< template<typename...> class ReturnClass,
+//     typename FuncType, typename... FuncTypes, typename ArgFirst,  typename... ArgTypes>
+// auto evaluate_lambdas(const std::tuple<FuncType, FuncTypes...>& tuple, ArgFirst&& arg, ArgTypes&&... args)
+// {
+//     constexpr auto Size = sizeof...(FuncTypes) + 1;
+
+//     return hidden::evaluate_lambdas<ReturnClass>(make_typed_sequence_t<Size>{},
+//         tuple, std::forward<ArgFirst>(arg), std::forward<ArgTypes>(args)...);
+// }
+
+template< template<typename, size_t> class ReturnClass,
+    typename FuncType, typename... FuncTypes, typename ArgFirst>
+auto evaluate_lambdas(const std::tuple<FuncType, FuncTypes...>& tuple, ArgFirst&& arg)
+{
+    constexpr auto Size = sizeof...(FuncTypes) + 1;
+
+    // if constexpr(is_tuple_v<decltype(arg)>)
+    // {
+    return hidden::evaluate_lambdas_tuple<ReturnClass>(type::make_sequence_t<Size>{},
+        tuple, std::forward<ArgFirst>(arg));
+    // }
+    // else
+    // {
+    //     return hidden::evaluate_lambdas<ReturnClass>(make_typed_sequence_t<Size>{},
+    //         tuple, std::forward<ArgFirst>(arg));
+    // }
+}
+
+template< template<typename...> class ReturnClass,
+    typename FuncType, typename... FuncTypes, typename ArgFirst>
+auto evaluate_lambdas(const std::tuple<FuncType, FuncTypes...>& tuple, ArgFirst&& arg)
+{
+    constexpr auto Size = sizeof...(FuncTypes) + 1;
+
+    // if constexpr(is_tuple_v<decltype(arg)>)
+    // {
+    return hidden::evaluate_lambdas_tuple<ReturnClass>(type::make_sequence_t<Size>{},
+        tuple, std::forward<ArgFirst>(arg));
+    // }
+    // else
+    // {
+    //     return hidden::evaluate_lambdas<ReturnClass>(make_typed_sequence_t<Size>{},
+    //         tuple, std::forward<ArgFirst>(arg));
+    // }
+}
