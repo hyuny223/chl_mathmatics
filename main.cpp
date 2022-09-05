@@ -48,20 +48,20 @@ int main()
 
     // cv::circle(board, original_xy, 10, cv::Scalar(0,255,0),3);
     // cv::circle(board, target_xy, 10, cv::Scalar(0,0,255),3);
+    // cv::circle(board, cv::Point2d(static_cast<int>(300 - 316.619),static_cast<int>(100 - 96.619)), 10, cv::Scalar(255,0,0),3);
 
     // cv::imshow("board", board);
     // cv::waitKey(0);
 
     std::tuple function{
-        [](double tx, double ty)
+        [](long double tx, long double ty)
         {
-            return std::sqrt((50 - (300+tx))*(50 - (300+tx)) + (50 - (100+ty))*(50 - (100+ty)));
+            return (50 - (300+tx))*(50 - (300+tx)) + (50 - (100+ty))*(50 - (100+ty));
         }
     };
 
-    auto y = newton_method(function, t);
+    auto y = gauss_newton_method(function, t);
 
 
-    // cv::circle(board, cv::Point2d(static_cast<int>(std::get<0>(y)),static_cast<int>(std::get<1>(y))), 10, cv::Scalar(255,0,0),3);
 
 }

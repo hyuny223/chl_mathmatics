@@ -71,14 +71,14 @@ auto partial_derivative(FuncType&& function, const std::tuple<ArgTypes...>& args
 
 
 template <typename... FuncType, typename... ArgTypes, std::size_t size = sizeof...(ArgTypes), std::size_t f_size = sizeof...(FuncType)>
-auto newton_method(
+auto gauss_newton_method(
     const std::tuple<FuncType...>& functions,
     std::tuple<ArgTypes...>& initial_values, int max_try = 20)
 {
     // constexpr auto ep = 3.0 * std::numeric_limits<ValueType>::epsilon();
     auto ep = 0.01;
 
-    type::matrix_t<double> mat(1,2);
+    type::matrix_t<long double> mat(1,2);
     type::compile_loop<size>([&mat, &initial_values](auto i)
     {
         mat(0,i.value) = std::get<i.value>(initial_values);
@@ -87,14 +87,14 @@ auto newton_method(
     double fx;
     type::compile_loop<f_size>([&functions, &mat, &initial_values, &ep, &fx](auto i)
     {
-        auto f = std::get<i.value>(functions);
+        auto& f = std::get<i.value>(functions);
         while(fabs(fx = f(mat(0,0), mat(0,1))) > ep)
         {
             std::cout << "fx : " << fx << std::endl;
             auto J = create_jacobian_matrix(functions, initial_values);
-            std::cout << "J : \n" << (((J.t()*J).inv())*J.t()*fx).t() << std::endl;
 
             mat = mat - (((J.t()*J).inv())*J.t()*fx).t();
+            std::cout << "mat : \n" << mat << std::endl;
 
             std::get<0>(initial_values) = mat(0,0);
             std::get<1>(initial_values) = mat(0,1);
@@ -104,18 +104,11 @@ auto newton_method(
 
     return mat;
 }
-/*
-자코비안
-1) std::tuple로 람다 함수를 받아들인다
-2) 하나의 행에는 하나의 람다 함수에 대한 다변수 편미분 진행
-3) 도출된 값을 vector로 넣거나, 아예 Eigen Matrix로 만들어도 좋을 것
-일단은 vector로 진행 
-*/
 
 template <typename... FuncTypes, typename... ArgTypes, std::size_t f_size = sizeof...(FuncTypes), std::size_t arg_size = sizeof...(ArgTypes)>
 auto create_jacobian_matrix(const std::tuple<FuncTypes...>& function, const std::tuple<ArgTypes...>& args)
 {
-    type::matrix_t<double> jacobian(f_size, arg_size);
+    type::matrix_t<long double> jacobian(f_size, arg_size);
     type::compile_loop<f_size>([&function, &args, &jacobian](auto i)
     {
         auto& f = std::get<i.value>(function);
@@ -148,7 +141,7 @@ void upper_triangular_matrix(ContainerType& container)
                 index = i;
             }
         }
-        type::matrix<double> tmp = container[row];
+        type::matrix<long double> tmp = container[row];
         container[row] = container[index];
         container[index] = tmp;
         return;
@@ -156,11 +149,13 @@ void upper_triangular_matrix(ContainerType& container)
 
     for(int row = 0; row < container.rows; ++row)
     {
+        std::cout << "container 1 : \n" << container << std::endl;
         pivot(row);
-        auto d = container(row, row);
+        std::cout << "container 2 : \n" << container << std::endl;
+        long double d = container(row, row);
         for(int mid = row; mid < container.rows; ++mid)
         {
-            auto m = container(mid, row);
+            long double m = container(mid, row);
             for(int col = 0; col < container.cols; ++col)
             {
 
@@ -170,9 +165,13 @@ void upper_triangular_matrix(ContainerType& container)
                 }
                 else
                 {
-                    auto k = m / container(row, row);
+                    long double k = m / container(row, row);
                     container(mid,col) = container(mid,col) -k * container(row,col);
                 }
+                std::cout << "----------------------" << std::endl;
+                std::cout << container << std::endl;
+                std::cout << "----------------------" << std::endl;
+                
             }
         }
     }
